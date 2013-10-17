@@ -29,6 +29,7 @@
 // spi information
 struct SPI_struct {
 	int fd;
+	uint32_t bps;
 };
 
 
@@ -37,7 +38,7 @@ static void set_spi_mode(SPI_type *spi, uint8_t mode);
 
 
 // enable SPI access SPI fd
-SPI_type *SPI_create(const char *spi_path) {
+SPI_type *SPI_create(const char *spi_path, uint32_t bps) {
 
 	// allocate memory
 	SPI_type *spi = malloc(sizeof(SPI_type));
@@ -52,13 +53,15 @@ SPI_type *SPI_create(const char *spi_path) {
 		return NULL;
 	}
 
+	spi->bps = bps;
+
 	return spi;
 }
 
 
 // release SPI fd (if open)
 bool SPI_destroy(SPI_type *spi) {
-	if (NULL == spi || spi->fd < 0) {
+	if (NULL == spi) {
 		return false;
 	}
 	close(spi->fd);
@@ -96,7 +99,7 @@ void SPI_send(SPI_type *spi, const void *buffer, size_t length) {
 	transfer_buffer[0].rx_buf = 0;  // nothing to receive
 	transfer_buffer[0].len = length;
 	transfer_buffer[0].delay_usecs = 10;
-	transfer_buffer[0].speed_hz = 5000000;
+	transfer_buffer[0].speed_hz = spi->bps;
 	transfer_buffer[0].bits_per_word = 8;
 	transfer_buffer[0].cs_change = 0;
 
@@ -113,7 +116,7 @@ static void set_spi_mode(SPI_type *spi, uint8_t mode) {
 
 	uint8_t bits = 8;
 	uint8_t lsb_first = 0;
-	uint32_t speed_hz = 5000000;
+	uint32_t speed_hz = spi->bps;
 
 	if (-1 == ioctl(spi->fd, SPI_IOC_WR_MODE, &mode)) {
 		err(1,"SPI: cannot set SPI_IOC_WR_MODE  =%d", mode);
